@@ -234,11 +234,13 @@ Open <http://localhost:8080> and request <http://localhost:8080/health>.
 
 ## Environment Variables
 
-| Variable   | Default  | Purpose                                         |
-|------------|----------|-------------------------------------------------|
-| `PORT`     | `8080`   | HTTP listening port inside the runtime          |
-| `DATA_DIR` | `./data` | Directory containing published JSON snapshots   |
-| `NODE_ENV` | unset    | Set to `production` in the Docker runtime image |
+| Variable               | Default                                    | Purpose                                      |
+|------------------------|--------------------------------------------|----------------------------------------------|
+| `PORT`                 | `8080`                                     | HTTP listening port inside the runtime       |
+| `DATA_DIR`             | `./data`                                   | Immutable artifacts and local metadata root  |
+| `METADATA_DB_PATH`     | `<DATA_DIR>/carecanvas-metadata.sqlite`    | SQLite metadata database path                |
+| `DEPLOYMENT_API_TOKEN` | Empty                                      | Optional management API bearer token         |
+| `NODE_ENV`             | unset                                      | `production` in the Docker runtime image     |
 
 ## Place a Reverse Proxy in Front
 
@@ -248,7 +250,7 @@ paths, including `/api/*` and `/p/*`, to CareCanvas.
 Operational requirements include:
 
 * HTTPS termination with an automatically renewed certificate
-* Request body limit of at least 2 MB for publish requests
+* Request body limit of at least 5 MB for package and publish requests
 * Forwarded host and protocol headers
 * No caching for `/api/*`
 * Appropriate access logs and retention policy
@@ -268,7 +270,8 @@ Before exposing CareCanvas to the internet:
 * Separate editor access from public-site access.
 * Add request rate limits and abuse monitoring.
 * Validate complete page documents with a strict schema.
-* Use a managed database or object store with backup and retention policies.
+* Replace local SQLite and files with managed database and object storage when
+  operating multiple application instances.
 * Add site lifecycle APIs for listing, updating, archiving, and deleting data.
 * Pin trusted image sources or proxy uploaded media through controlled storage.
 * Add centralized logs, metrics, alerts, and dependency scanning.
@@ -278,9 +281,10 @@ Before exposing CareCanvas to the internet:
 ## Health Monitoring
 
 The image includes a Docker health check that requests
-`http://127.0.0.1:8080/health` every 20 seconds. Monitor both container health
-and external reachability because a reverse proxy can fail while the internal
-health check remains green.
+`http://127.0.0.1:8080/health` every 20 seconds. The response includes SQLite
+status and schema version. Monitor container health, metadata summaries, volume
+capacity, and external reachability because a proxy or integration can fail
+while the internal health check remains green.
 
 Useful checks:
 

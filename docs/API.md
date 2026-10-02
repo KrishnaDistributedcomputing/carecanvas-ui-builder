@@ -22,11 +22,12 @@ http://localhost:8082
 A direct Node.js deployment uses port `8080` unless `PORT` overrides it.
 
 All API responses use JSON. Publish requests must send
-`Content-Type: application/json` and remain below the 2 MB server limit.
+`Content-Type: application/json` and remain below the 5 MB server limit.
 
 > [!WARNING]
-> The API has no authentication or authorization. Do not expose it to an
-> untrusted network or send PHI, patient details, credentials, or secrets.
+> Public routes have no authentication. Management routes use an optional
+> `DEPLOYMENT_API_TOKEN` bearer token. Do not expose an unprotected deployment
+> API or send PHI, patient details, credentials, or secret values.
 
 ## Health Check
 
@@ -49,13 +50,19 @@ Content-Type: application/json; charset=utf-8
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "metadata": {
+    "status": "ok",
+    "engine": "sqlite",
+    "schemaVersion": 1,
+    "journalMode": "wal"
+  }
 }
 ```
 
-The endpoint does not inspect Docker volume capacity, image providers, or
-published snapshot readability. Combine it with an external public-route check
-for operational monitoring.
+The endpoint executes a SQLite query and reports its schema and journal mode. It
+does not inspect Docker volume capacity, image providers, integrations, or
+published snapshot readability. Combine it with an external route check.
 
 ## Publish a Site
 
@@ -235,6 +242,31 @@ paths return `dist/index.html` so the client can handle them.
 Unsupported non-GET requests that do not match an API route fall through to the
 default Express response.
 
+## Metadata API
+
+Metadata endpoints index and process operational information from published
+pages, packages, validations, deployments, logs, and active release pointers.
+
+| Method | Route                       | Purpose                                   |
+|--------|-----------------------------|-------------------------------------------|
+| `GET`  | `/api/metadata/summary`     | Aggregate processed metadata              |
+| `GET`  | `/api/metadata/sites`       | Search published-site metadata            |
+| `GET`  | `/api/metadata/packages`    | List package versions and artifact counts |
+| `GET`  | `/api/metadata/deployments` | Filter environment deployment metadata    |
+| `GET`  | `/api/metadata/validations` | Filter validation history                 |
+| `POST` | `/api/metadata/reindex`     | Rebuild SQLite from immutable JSON        |
+
+Supported query parameters include `query`, `packageId`, `environment`, and
+`limit` where relevant. Result limits are capped at 250.
+
+When `DEPLOYMENT_API_TOKEN` is configured, send:
+
+```http
+Authorization: Bearer <deployment-token>
+```
+
+See the [Local Datastore Guide](LOCAL_DATASTORE.md) for step-by-step examples.
+
 ## Response Security Headers
 
 The server applies these headers:
@@ -286,7 +318,7 @@ Google-hosted fonts, inline styles, data images, and HTTPS images.
 
 The server does not currently provide endpoints to:
 
-* List published sites
+* List or retrieve complete published content as a collection
 * Update an existing slug
 * Delete a site
 * Authenticate an editor

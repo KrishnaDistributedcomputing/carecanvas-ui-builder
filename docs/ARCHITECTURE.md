@@ -209,23 +209,31 @@ publish creates a new snapshot rather than updating a previous slug.
 
 * Apply baseline security response headers.
 * Validate and store published page documents.
+* Validate, deploy, and roll back portable packages.
+* Query and rebuild the local SQLite metadata index.
 * Serve static assets and single-page application routes.
 
-The server accepts JSON bodies up to 2 MB. Slugs allow lowercase letters,
+The server accepts JSON bodies up to 5 MB. Slugs allow lowercase letters,
 numbers, and hyphens and are limited to 80 characters when read.
 
-Storage is file-based. The Docker image writes snapshots to `/data`, which is
-mounted from a named volume. This keeps image replacement separate from content
-lifecycle.
+Storage uses immutable JSON payloads plus a derived SQLite metadata index. The
+Docker image writes both under `/data`, which is mounted from a named volume.
+Startup synchronization indexes page, package, release, and active pointer JSON
+without dropping standalone validations. Explicit reindex provides complete
+artifact-only recovery. See the [Local Datastore Guide](LOCAL_DATASTORE.md).
+
+The [Technical Design](TECHNICAL_DESIGN.md) defines the complete component,
+data, consistency, security, deployment, and recovery model.
 
 ## Docker Image
 
 The multi-stage image uses:
 
 1. A build stage with all dependencies and `npm run build`.
-2. A runtime stage with production dependencies, `server.mjs`, and `dist`.
+2. A runtime stage with production dependencies, server modules, and `dist`.
 3. A non-root `node` user.
-4. A health check against the internal HTTP endpoint.
+4. A named volume for immutable artifacts and SQLite metadata.
+5. A health check against the internal HTTP and metadata endpoint.
 
 ## Security Model
 
@@ -239,6 +247,9 @@ Current safeguards include:
 * JSON body-size limit
 * Restricted slug format
 * Atomic writes
+* Optional deployment API bearer token
+* Secret-reference validation and embedded-secret detection
+* Parameterized SQL, foreign keys, and write transactions
 
 The system lacks the controls required for sensitive or regulated data. Review
 [Security](../SECURITY.md) before changing the data classification.
@@ -259,8 +270,8 @@ When extending CareCanvas:
 
 ## Current Tradeoffs
 
-File storage and browser drafts minimize setup, but they do not provide
-multi-user editing, search, transactional updates, or centralized draft backup.
-The architecture is appropriate for a focused prototype. A production SaaS
-version should move identity, drafts, snapshots, media, and audit events behind
-explicit service boundaries.
+Browser drafts, immutable files, and local SQLite minimize setup and provide
+searchable operational metadata. They do not provide multi-user editing,
+distributed transactions, horizontal writers, or centralized draft backup. A
+production SaaS version should move identity, drafts, payloads, metadata, media,
+and audit events behind explicit managed service boundaries.

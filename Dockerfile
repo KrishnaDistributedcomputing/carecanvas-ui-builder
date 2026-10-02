@@ -15,7 +15,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
-COPY server.mjs deployment-runtime.mjs ./
+COPY server.mjs deployment-runtime.mjs metadata-store.mjs ./
 COPY --from=build /app/dist ./dist
 
 RUN mkdir -p /data && chown node:node /data

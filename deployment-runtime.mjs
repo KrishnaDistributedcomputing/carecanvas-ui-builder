@@ -231,7 +231,7 @@ function logEvent(level, code, message, details) {
   return { timestamp: new Date().toISOString(), level, code, message, details }
 }
 
-export async function createDeploymentStore(dataDirectory) {
+export async function createDeploymentStore(dataDirectory, metadataStore = null) {
   const root = path.join(dataDirectory, 'deployment-system')
   const packagesDirectory = path.join(root, 'packages')
   const environmentsDirectory = path.join(root, 'environments')
@@ -317,6 +317,11 @@ export async function createDeploymentStore(dataDirectory) {
       environment,
       activatedAt: record.completedAt,
     })
+    metadataStore?.recordDeployment(deploymentPackage, record, {
+      packagePath: packageStore.path,
+      releasePath: releaseFile,
+      active: true,
+    })
     return record
   }
 
@@ -375,6 +380,17 @@ export async function createDeploymentStore(dataDirectory) {
       environment,
       activatedAt: completedAt,
     })
+    if (metadataStore) {
+      const packagePath = path.join(
+        packagesDirectory,
+        `${record.contentDigest.replace(/^sha256:/, '')}.json`,
+      )
+      metadataStore.recordDeployment(await readJson(packagePath), record, {
+        packagePath,
+        releasePath: path.join(releasesDirectory, `${deploymentId}.json`),
+        active: true,
+      })
+    }
     return record
   }
 

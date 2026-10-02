@@ -66,7 +66,15 @@ curl http://localhost:8082/health
 The health endpoint returns:
 
 ```json
-{"status":"ok"}
+{
+  "status": "ok",
+  "metadata": {
+    "status": "ok",
+    "engine": "sqlite",
+    "schemaVersion": 1,
+    "journalMode": "wal"
+  }
+}
 ```
 
 ### Stop CareCanvas
@@ -143,21 +151,25 @@ npm run check
 
 ## Documentation
 
-| Guide                                      | Purpose                                         |
-|--------------------------------------------|-------------------------------------------------|
-| [User Guide](docs/USER_GUIDE.md)           | Step-by-step visual builder instructions        |
-| [Deployment Guide](docs/DEPLOYMENT.md)     | Docker, Node.js, persistence, and operations    |
-| [Architecture](docs/ARCHITECTURE.md)       | Components, data flow, and design decisions     |
-| [API Reference](docs/API.md)               | Health and publishing endpoints                 |
-| [Troubleshoot](docs/TROUBLESHOOTING.md)    | Common setup and runtime problems               |
-| [Contributing](CONTRIBUTING.md)            | Development and pull request workflow           |
-| [Security](SECURITY.md)                    | Data limitations and vulnerability reporting    |
+| Guide                                              | Purpose                                         |
+|----------------------------------------------------|-------------------------------------------------|
+| [User Guide](docs/USER_GUIDE.md)                   | Step-by-step visual builder instructions        |
+| [Deployment Guide](docs/DEPLOYMENT.md)             | Docker, Node.js, persistence, and operations    |
+| [Architecture](docs/ARCHITECTURE.md)               | Components, data flow, and design decisions     |
+| [Technical Design](docs/TECHNICAL_DESIGN.md)       | Detailed solution design and tradeoffs          |
+| [Portable Deployment](docs/PORTABLE_DEPLOYMENT.md) | Immutable promotion and rollback                |
+| [Local Datastore](docs/LOCAL_DATASTORE.md)         | SQLite metadata setup, processing, and recovery |
+| [API Reference](docs/API.md)                       | Health and publishing endpoints                 |
+| [Troubleshoot](docs/TROUBLESHOOTING.md)            | Common setup and runtime problems               |
+| [Contributing](CONTRIBUTING.md)                    | Development and pull request workflow           |
+| [Security](SECURITY.md)                            | Data limitations and vulnerability reporting    |
 
 ## Technology
 
 * React 19 and TypeScript 6
 * Vite 8
 * Express 5
+* Node.js built-in SQLite
 * Lucide React
 * Oxlint
 * Docker with a Node.js Alpine runtime
@@ -167,14 +179,18 @@ npm run check
 Editor drafts are stored in browser `localStorage` under `carecanvas-page`.
 Published snapshots are written as JSON files under the server `DATA_DIR`.
 Docker Compose mounts that directory from the `mason-sites` named volume.
+Portable packages and deployment releases are also stored as immutable JSON.
+SQLite indexes their operational metadata for search, aggregate processing,
+validation history, deployment logs, and active-release queries.
 
 Each publish creates a new slug. Existing published URLs remain unchanged while
-the volume exists.
+the volume exists. The SQLite index can be rebuilt from immutable JSON artifacts.
 
 ## Known Boundaries
 
 * Appointment forms demonstrate UI only and do not submit or store patient data.
-* The server has no authentication, authorization, tenancy, or site deletion API.
+* Public/editor routes have no user authentication, tenancy, or site deletion API.
+* Management APIs support one optional runtime bearer token, not user-level RBAC.
 * Images use remote HTTPS URLs and depend on the source remaining available.
 * Drafts are specific to the browser profile and device where they were created.
 * Published links are accessible to anyone who can reach the container.
