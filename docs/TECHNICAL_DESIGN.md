@@ -166,7 +166,7 @@ are versioned.
 flowchart LR
     Builder[Content builder] --> Editor[React visual editor]
     Engineer[Release engineer] --> Center[Deployment center]
-    Pipeline[CI/CD pipeline] --> CLI[Deployment CLI]
+    Pipeline["CI/CD pipeline"] --> CLI[Deployment CLI]
     Visitor[Public visitor] --> Public[Published or environment route]
     Operator[Operator] --> MetadataAPI[Metadata API]
 
@@ -186,20 +186,20 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph Browser
+    subgraph Browser["Browser"]
         App[App.tsx]
         Renderer[PageRenderer]
         PackageClient[deploymentPackage.ts]
         Drafts[(localStorage)]
     end
 
-    subgraph NodeRuntime[Node.js runtime]
+    subgraph NodeRuntime["Node.js runtime"]
         HTTP[server.mjs]
         Deploy[deployment-runtime.mjs]
         Index[metadata-store.mjs]
     end
 
-    subgraph PersistentVolume[/data named volume]
+    subgraph PersistentVolume["/data named volume"]
         Pages[Published page JSON]
         Packages[Package JSON by digest]
         Releases[Release and active-pointer JSON]
