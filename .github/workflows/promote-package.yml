@@ -88,7 +88,7 @@ jobs:
 
       - name: Preserve deployment evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: carecanvas-${{ inputs.environment }}-${{ github.run_number }}
           path: |
