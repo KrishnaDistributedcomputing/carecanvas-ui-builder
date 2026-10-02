@@ -1,0 +1,15 @@
+services:
+  mason:
+    build:
+      context: .
+    container_name: mason-app-designer
+    ports:
+      - "8082:8080"
+    environment:
+      DEPLOYMENT_API_TOKEN: "${DEPLOYMENT_API_TOKEN:-}"
+    volumes:
+      - mason-sites:/data
+    restart: unless-stopped
+
+volumes:
+  mason-sites:

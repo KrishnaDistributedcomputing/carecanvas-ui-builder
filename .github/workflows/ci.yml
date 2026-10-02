@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run repository checks
+        run: npm run check
+
+      - name: Validate Docker configuration
+        run: |
+          docker compose config --quiet
+          docker build --check .
+
+      - name: Build production image
+        run: docker build --tag carecanvas-ci:${{ github.sha }} .
+
+      - name: Smoke test production image
+        run: |
+          docker run --detach --name carecanvas-ci --publish 18080:8080 carecanvas-ci:${{ github.sha }}
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:18080/health; then
+              break
+            fi
+            if [ "$attempt" = "20" ]; then
+              docker logs carecanvas-ci
+              exit 1
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:18080/ > /dev/null
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs carecanvas-ci || true
+
+      - name: Remove smoke-test container
+        if: always()
+        run: docker rm --force carecanvas-ci || true

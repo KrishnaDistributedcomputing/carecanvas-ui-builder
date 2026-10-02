@@ -1,0 +1,98 @@
+name: Promote immutable package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_path:
+        description: Repository path to the versioned .carecanvas.zip artifact
+        required: true
+        type: string
+      environment:
+        description: Target CareCanvas environment
+        required: true
+        type: choice
+        options:
+          - development
+          - test
+          - uat
+          - staging
+          - production
+      server_url:
+        description: CareCanvas deployment API base URL
+        required: true
+        type: string
+      config_path:
+        description: Optional repository path to target configuration JSON
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carecanvas-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      CARECANVAS_DEPLOYMENT_TOKEN: ${{ secrets.CARECANVAS_DEPLOYMENT_TOKEN }}
+
+    steps:
+      - name: Check out immutable package
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install deployment client
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify package exists
+        run: test -f "${{ inputs.package_path }}"
+
+      - name: Validate package and target configuration
+        shell: bash
+        run: |
+          set -o pipefail
+          config_args=()
+          if [ -n "${{ inputs.config_path }}" ]; then
+            config_args=(--config "${{ inputs.config_path }}")
+          fi
+          node scripts/carecanvas-deploy.mjs validate \
+            --package "${{ inputs.package_path }}" \
+            --environment "${{ inputs.environment }}" \
+            --server "${{ inputs.server_url }}" \
+            "${config_args[@]}" | tee validation-report.json
+
+      - name: Deploy the same validated package
+        shell: bash
+        run: |
+          set -o pipefail
+          config_args=()
+          if [ -n "${{ inputs.config_path }}" ]; then
+            config_args=(--config "${{ inputs.config_path }}")
+          fi
+          node scripts/carecanvas-deploy.mjs deploy \
+            --package "${{ inputs.package_path }}" \
+            --environment "${{ inputs.environment }}" \
+            --server "${{ inputs.server_url }}" \
+            "${config_args[@]}" | tee deployment-report.json
+
+      - name: Preserve deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carecanvas-${{ inputs.environment }}-${{ github.run_number }}
+          path: |
+            validation-report.json
+            deployment-report.json
+          if-no-files-found: warn
+          retention-days: 90

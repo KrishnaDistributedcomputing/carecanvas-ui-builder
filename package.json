@@ -1,0 +1,39 @@
+{
+  "name": "carecanvas-ui-builder",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Medical-centric visual UI builder with Docker-hosted publishing",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KrishnaDistributedcomputing/carecanvas-ui-builder.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "lint:docs": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#dist\"",
+    "test": "node --test",
+    "check": "npm run lint && npm run lint:docs && npm test && npm run build",
+    "carecanvas": "node scripts/carecanvas-deploy.mjs",
+    "preview": "vite preview",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.48.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "markdownlint-cli2": "^0.23.3",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
